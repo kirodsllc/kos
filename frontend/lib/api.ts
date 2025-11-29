@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Old localhost URL (commented out for production)
+// const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+// Vercel backend URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://crystal-trading-frontend-piom.vercel.app/api';
 
 // Suppress browser extension errors in console
 if (typeof window !== 'undefined') {
