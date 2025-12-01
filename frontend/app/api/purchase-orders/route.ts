@@ -54,23 +54,46 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { poNo, supplierId, type, status, orderDate, expectedDate, items, totalAmount } = body;
+    const { poNo, supplierId, supplierName, type, status, orderDate, expectedDate, items, totalAmount } = body;
+
+    // If supplierId is provided, fetch supplier details
+    let finalSupplierName = supplierName || '';
+    if (supplierId && !supplierName) {
+      const supplier = await prisma.supplier.findUnique({
+        where: { id: supplierId },
+      });
+      if (supplier) {
+        finalSupplierName = supplier.name;
+      }
+    }
+
+    // Ensure supplierName is provided (required field)
+    if (!finalSupplierName) {
+      return NextResponse.json(
+        { error: 'Supplier name is required' },
+        { status: 400 }
+      );
+    }
 
     const purchaseOrder = await prisma.purchaseOrder.create({
       data: {
         poNo,
-        supplierId,
+        supplierId: supplierId || null,
+        supplierName: finalSupplierName,
         type: type || 'purchase',
         status: status || 'draft',
         orderDate: orderDate ? new Date(orderDate) : new Date(),
         expectedDate: expectedDate ? new Date(expectedDate) : null,
-        totalAmount,
+        totalAmount: totalAmount || 0,
         items: {
-          create: items.map((item: any) => ({
-            partId: item.partId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice,
+          create: (items || []).map((item: any) => ({
+            partId: item.partId || null,
+            partNo: item.partNo || '',
+            description: item.description || null,
+            quantity: item.quantity || 1,
+            unitPrice: item.unitPrice || 0,
+            totalPrice: item.totalPrice || 0,
+            uom: item.uom || null,
           })),
         },
       },
