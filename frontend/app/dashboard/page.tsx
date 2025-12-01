@@ -189,20 +189,22 @@ const _AreaChart = ({ data, labels, partsUsedData }: { data: number[]; labels: s
   const chartStartY = topPadding;
   const chartEndY = height - bottomPadding;
   
-  const points = data.map((value, index) => {
+  type ChartPoint = { x: number; y: number; value: number; index: number };
+
+  const points: ChartPoint[] = data.map((value, index) => {
     const x = chartStartX + (index / (data.length - 1 || 1)) * chartWidth;
     const y = chartEndY - ((value - min) / range) * chartHeight;
     return { x, y, value, index };
   });
   
-  const partsUsedPoints = partsUsedData?.map((value, index) => {
+  const partsUsedPoints: ChartPoint[] = partsUsedData?.map((value, index) => {
     const x = chartStartX + (index / (partsUsedData.length - 1 || 1)) * chartWidth;
     const y = chartEndY - ((value - min) / range) * chartHeight;
     return { x, y, value, index };
   }) || [];
   
   // Create smooth bezier curve path using Catmull-Rom spline approximation
-  const createSmoothPath = (points: typeof points) => {
+  const createSmoothPath = (points: ChartPoint[]) => {
     if (points.length < 2) return '';
     if (points.length === 2) {
       return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
