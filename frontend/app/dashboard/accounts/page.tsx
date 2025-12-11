@@ -24,6 +24,16 @@ import {
 } from '@/components/ui/dialog';
 import api from '@/lib/api';
 
+// Import Finance Components
+import GeneralLedger from './components/GeneralLedger';
+import TrialBalance from './components/TrialBalance';
+import SupplierPayments from './components/SupplierPayments';
+import PayableReminders from './components/PayableReminders';
+import CustomerReceivables from './components/CustomerReceivables';
+import CashBook from './components/CashBook';
+import BankBook from './components/BankBook';
+import CostPriceReporting from './components/CostPriceReporting';
+
 // Icons
 const ManageAccountsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,9 +41,9 @@ const ManageAccountsIcon = ({ className = "w-5 h-5" }: { className?: string }) =
   </svg>
 );
 
-const DailyClosingIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+const FinanceIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 );
 
@@ -67,19 +77,18 @@ interface Account {
   updatedAt?: string;
 }
 
+type MainSection = 'manage-accounts' | 'finance';
+type AccountTab = 'main-groups' | 'subgroups' | 'accounts';
+type FinanceTab = 'general-ledger' | 'trial-balance' | 'supplier-payments' | 'payable-reminders' | 'customer-receivables' | 'cash-book' | 'bank-book' | 'cost-reporting';
+
 export default function AccountsPage() {
   // Main section tabs
-  const [mainSection, setMainSection] = useState('manage-accounts');
-  const [activeTab, setActiveTab] = useState('main-groups');
+  const [mainSection, setMainSection] = useState<MainSection>('manage-accounts');
+  const [activeTab, setActiveTab] = useState<AccountTab>('main-groups');
+  const [financeTab, setFinanceTab] = useState<FinanceTab>('general-ledger');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
-  // Daily Closing state
-  const [closingDate, setClosingDate] = useState(new Date().toISOString().split('T')[0]);
-  const [closingNotes, setClosingNotes] = useState('');
-  const [dailyClosings, setDailyClosings] = useState<any[]>([]);
-  const [closingDialogOpen, setClosingDialogOpen] = useState(false);
 
   // Main Groups
   const [mainGroups, setMainGroups] = useState<MainGroup[]>([]);
@@ -109,31 +118,76 @@ export default function AccountsPage() {
   const [accountDialogMainGroupId, setAccountDialogMainGroupId] = useState('');
   const [accountDialogSubGroups, setAccountDialogSubGroups] = useState<SubGroup[]>([]);
 
+  // Finance Tab Items
+  const financeTabItems = [
+    { id: 'general-ledger' as FinanceTab, label: 'General Ledger', icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    )},
+    { id: 'trial-balance' as FinanceTab, label: 'Trial Balance', icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    )},
+    { id: 'supplier-payments' as FinanceTab, label: 'Supplier Payments', icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    )},
+    { id: 'payable-reminders' as FinanceTab, label: 'Payable Reminders', icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+    )},
+    { id: 'customer-receivables' as FinanceTab, label: 'Customer Receivables', icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    )},
+    { id: 'cash-book' as FinanceTab, label: 'Cash Book', icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    )},
+    { id: 'bank-book' as FinanceTab, label: 'Bank Book', icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+      </svg>
+    )},
+    { id: 'cost-reporting' as FinanceTab, label: 'Cost Price Reporting', icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    )},
+  ];
+
   // Fetch data
   useEffect(() => {
-    if (activeTab === 'main-groups') {
-      fetchMainGroups();
-    } else if (activeTab === 'subgroups') {
-      fetchSubGroups();
-      fetchMainGroups(); // For filter dropdown
-    } else if (activeTab === 'accounts') {
-      fetchAccounts();
-      fetchMainGroups(); // For filter dropdown
+    if (mainSection === 'manage-accounts') {
+      if (activeTab === 'main-groups') {
+        fetchMainGroups();
+      } else if (activeTab === 'subgroups') {
+        fetchSubGroups();
+        fetchMainGroups();
+      } else if (activeTab === 'accounts') {
+        fetchAccounts();
+        fetchMainGroups();
+      }
     }
-  }, [activeTab, subGroupMainGroupFilter, subGroupStatusFilter, accountMainGroupFilter, accountSubGroupFilter, accountStatusFilter]);
+  }, [mainSection, activeTab, subGroupMainGroupFilter, subGroupStatusFilter, accountMainGroupFilter, accountSubGroupFilter, accountStatusFilter]);
 
   const fetchMainGroups = async () => {
     try {
       setLoading(true);
-      setError(''); // Clear previous errors
+      setError('');
       const response = await api.get('/accounts/main-groups');
       setMainGroups(response.data.mainGroups || []);
-      setSuccess(''); // Clear success message after successful fetch
+      setSuccess('');
     } catch (err: any) {
       console.error('Error fetching main groups:', err);
       const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch main groups';
       setError(errorMessage);
-      // If it's a table not found error, the database needs to be synced
       if (errorMessage.includes('P2021') || errorMessage.includes('Table') || errorMessage.includes('does not exist')) {
         setError('Database tables are missing. The database has been synced. Please restart the server.');
       }
@@ -299,7 +353,6 @@ export default function AccountsPage() {
         name: account.name,
         status: account.status,
       });
-      // Fetch subgroups for the account's main group
       if (account.subGroup?.mainGroupId) {
         setAccountDialogMainGroupId(account.subGroup.mainGroupId);
         try {
@@ -359,22 +412,50 @@ export default function AccountsPage() {
     }
   };
 
-  // Get subgroups for a main group (for account form)
   const getSubGroupsForMainGroup = (mainGroupId: string) => {
     return subGroups.filter(sg => sg.mainGroupId === mainGroupId);
   };
 
-  // Update subgroups when main group filter changes in accounts tab
   useEffect(() => {
     if (activeTab === 'accounts' && accountMainGroupFilter) {
       fetchSubGroups();
     }
   }, [accountMainGroupFilter, activeTab]);
 
+  // Render Finance Tab Content
+  const renderFinanceContent = () => {
+    switch (financeTab) {
+      case 'general-ledger':
+        return <GeneralLedger />;
+      case 'trial-balance':
+        return <TrialBalance />;
+      case 'supplier-payments':
+        return <SupplierPayments />;
+      case 'payable-reminders':
+        return <PayableReminders />;
+      case 'customer-receivables':
+        return <CustomerReceivables />;
+      case 'cash-book':
+        return <CashBook />;
+      case 'bank-book':
+        return <BankBook />;
+      case 'cost-reporting':
+        return <CostPriceReporting />;
+      default:
+        return <GeneralLedger />;
+    }
+  };
+
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 bg-gray-50 min-h-screen transition-smooth">
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Accounts & Finance</h1>
+        <p className="text-gray-600">Complete accounting and financial management system</p>
+      </div>
+
       <Card className="bg-white shadow-soft">
-        {/* Main Section Tabs - Parts Management Style */}
+        {/* Main Section Tabs */}
         <div className="flex justify-center border-b border-gray-200 bg-white rounded-t-lg">
           <button
             onClick={() => setMainSection('manage-accounts')}
@@ -388,27 +469,27 @@ export default function AccountsPage() {
             <span>Manage Accounts</span>
           </button>
           <button
-            onClick={() => setMainSection('daily-closing')}
+            onClick={() => setMainSection('finance')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-all duration-200 ${
-              mainSection === 'daily-closing'
+              mainSection === 'finance'
                 ? 'text-primary-600 border-b-2 border-primary-500 bg-primary-50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            <DailyClosingIcon className="w-5 h-5" />
-            <span>Daily Closing</span>
+            <FinanceIcon className="w-5 h-5" />
+            <span>Finance & Reports</span>
           </button>
         </div>
 
         {/* Manage Accounts Section */}
         {mainSection === 'manage-accounts' && (
           <div className="p-0">
-            {/* Sub Tabs - Similar style */}
+            {/* Sub Tabs */}
             <div className="px-3 sm:px-4 md:px-6 pt-4 md:pt-6 border-b border-gray-100">
-              <div className="flex gap-1">
+              <div className="flex gap-1 overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('main-groups')}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap ${
                     activeTab === 'main-groups'
                       ? 'text-primary-600 bg-primary-50 border-b-2 border-primary-500'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -420,7 +501,7 @@ export default function AccountsPage() {
                 </button>
                 <button
                   onClick={() => setActiveTab('subgroups')}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap ${
                     activeTab === 'subgroups'
                       ? 'text-primary-600 bg-primary-50 border-b-2 border-primary-500'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -432,7 +513,7 @@ export default function AccountsPage() {
                 </button>
                 <button
                   onClick={() => setActiveTab('accounts')}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap ${
                     activeTab === 'accounts'
                       ? 'text-primary-600 bg-primary-50 border-b-2 border-primary-500'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -460,7 +541,7 @@ export default function AccountsPage() {
             {/* Main Groups Tab */}
             {activeTab === 'main-groups' && (
               <div className="px-3 sm:px-4 md:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pt-4">
                   <div className="flex items-center gap-2 sm:gap-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
                       <span className="text-blue-600 text-lg sm:text-xl">👥</span>
@@ -477,9 +558,6 @@ export default function AccountsPage() {
                       <span className="hidden sm:inline">+ Add New Main Group</span>
                       <span className="sm:hidden">+ Add</span>
                     </Button>
-                    <button className="p-2 hover:bg-gray-100 rounded-lg hidden sm:block">
-                      <span className="text-gray-600">⋯</span>
-                    </button>
                   </div>
                 </div>
 
@@ -494,18 +572,19 @@ export default function AccountsPage() {
                             </TableHead>
                             <TableHead className="underline cursor-pointer px-2 sm:px-4 text-xs sm:text-sm">Code</TableHead>
                             <TableHead className="underline cursor-pointer px-2 sm:px-4 text-xs sm:text-sm">Main Group Name</TableHead>
+                            <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {loading && mainGroups.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={3} className="text-center py-8 text-gray-500 text-sm sm:text-base">
+                              <TableCell colSpan={4} className="text-center py-8 text-gray-500 text-sm sm:text-base">
                                 Loading...
                               </TableCell>
                             </TableRow>
                           ) : mainGroups.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={3} className="text-center py-8 text-gray-500 text-sm sm:text-base">
+                              <TableCell colSpan={4} className="text-center py-8 text-gray-500 text-sm sm:text-base">
                                 No main groups found. Create one to get started.
                               </TableCell>
                             </TableRow>
@@ -517,6 +596,28 @@ export default function AccountsPage() {
                                 </TableCell>
                                 <TableCell className="font-medium px-2 sm:px-4 text-sm sm:text-base">{group.code}</TableCell>
                                 <TableCell className="px-2 sm:px-4 text-sm sm:text-base">{group.name}</TableCell>
+                                <TableCell className="px-2 sm:px-4">
+                                  <div className="flex items-center gap-1 sm:gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openMainGroupDialog(group)}
+                                      className="flex items-center gap-1 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5"
+                                    >
+                                      <span className="text-xs sm:text-sm">✏️</span>
+                                      <span className="hidden sm:inline">Edit</span>
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleMainGroupDelete(group.id)}
+                                      className="flex items-center gap-1 text-red-600 hover:text-red-700 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5"
+                                    >
+                                      <span className="text-xs sm:text-sm">🗑️</span>
+                                      <span className="hidden sm:inline">Delete</span>
+                                    </Button>
+                                  </div>
+                                </TableCell>
                               </TableRow>
                             ))
                           )}
@@ -545,7 +646,7 @@ export default function AccountsPage() {
             {/* Subgroups Tab */}
             {activeTab === 'subgroups' && (
               <div className="px-3 sm:px-4 md:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pt-4">
                   <div className="flex items-center gap-2 sm:gap-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
                       <span className="text-blue-600 text-lg sm:text-xl">👥</span>
@@ -559,9 +660,6 @@ export default function AccountsPage() {
                       <span className="hidden sm:inline">+ Add New Subgroup</span>
                       <span className="sm:hidden">+ Add</span>
                     </Button>
-                    <button className="p-2 hover:bg-gray-100 rounded-lg hidden sm:block">
-                      <span className="text-gray-600">⋯</span>
-                    </button>
                   </div>
                 </div>
 
@@ -649,17 +747,15 @@ export default function AccountsPage() {
                                       <span className="text-xs sm:text-sm">✏️</span>
                                       <span className="hidden sm:inline">Edit</span>
                                     </Button>
-                                    {group.code === '108' || group.code === '206' ? (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleSubGroupDelete(group.id)}
-                                        className="flex items-center gap-1 text-red-600 hover:text-red-700 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5"
-                                      >
-                                        <span className="text-xs sm:text-sm">🗑️</span>
-                                        <span className="hidden sm:inline">Delete</span>
-                                      </Button>
-                                    ) : null}
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleSubGroupDelete(group.id)}
+                                      className="flex items-center gap-1 text-red-600 hover:text-red-700 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5"
+                                    >
+                                      <span className="text-xs sm:text-sm">🗑️</span>
+                                      <span className="hidden sm:inline">Delete</span>
+                                    </Button>
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -676,7 +772,7 @@ export default function AccountsPage() {
             {/* Accounts Tab */}
             {activeTab === 'accounts' && (
               <div className="px-3 sm:px-4 md:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pt-4">
                   <div className="flex items-center gap-2 sm:gap-3">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
                       <span className="text-blue-600 text-lg sm:text-xl">👥</span>
@@ -694,9 +790,6 @@ export default function AccountsPage() {
                       <span className="hidden md:inline">Add New person's Account</span>
                       <span className="md:hidden">+ Person Account</span>
                     </Button>
-                    <button className="p-2 hover:bg-gray-100 rounded-lg hidden sm:block">
-                      <span className="text-gray-600">⋯</span>
-                    </button>
                   </div>
                 </div>
 
@@ -708,7 +801,7 @@ export default function AccountsPage() {
                       value={accountMainGroupFilter}
                       onChange={(e) => {
                         setAccountMainGroupFilter(e.target.value);
-                        setAccountSubGroupFilter(''); // Reset subgroup filter
+                        setAccountSubGroupFilter('');
                       }}
                       className="w-full text-sm sm:text-base"
                     >
@@ -801,7 +894,7 @@ export default function AccountsPage() {
                                 <TableCell className="px-2 sm:px-4 text-xs sm:text-sm truncate max-w-[150px] sm:max-w-none">{account.name}</TableCell>
                                 <TableCell className="px-2 sm:px-4">
                                   <div className="flex items-center gap-1.5 sm:gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
+                                    <div className={`w-2 h-2 rounded-full ${account.status === 'Active' ? 'bg-green-500' : 'bg-red-500'} flex-shrink-0`}></div>
                                     <span className="text-xs sm:text-sm">{account.status}</span>
                                   </div>
                                 </TableCell>
@@ -825,9 +918,6 @@ export default function AccountsPage() {
                                       <span className="text-xs sm:text-sm">🗑️</span>
                                       <span className="hidden sm:inline">Delete</span>
                                     </Button>
-                                    <button className="p-1 hover:bg-gray-100 rounded hidden sm:block">
-                                      <span className="text-gray-600 text-xs">⋯</span>
-                                    </button>
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -843,233 +933,37 @@ export default function AccountsPage() {
           </div>
         )}
 
-        {/* Daily Closing Section */}
-        {mainSection === 'daily-closing' && (
-          <div className="px-3 sm:px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <DailyClosingIcon />
-                  </div>
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Daily Closing</h2>
-                    <p className="text-sm text-gray-500">End of day account reconciliation</p>
-                  </div>
-                </div>
-                <Button 
-                  onClick={() => setClosingDialogOpen(true)}
-                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-lg"
-                >
-                  + New Daily Closing
-                </Button>
+        {/* Finance Section */}
+        {mainSection === 'finance' && (
+          <div className="p-0">
+            {/* Finance Sub Tabs */}
+            <div className="px-3 sm:px-4 md:px-6 pt-4 border-b border-gray-100 overflow-x-auto">
+              <div className="flex gap-1 min-w-max pb-px">
+                {financeTabItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setFinanceTab(item.id)}
+                    className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-t-lg transition-all duration-200 whitespace-nowrap ${
+                      financeTab === item.id
+                        ? 'text-primary-600 bg-primary-50 border-b-2 border-primary-500'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    {item.icon}
+                    <span className="hidden md:inline">{item.label}</span>
+                    <span className="md:hidden">{item.label.split(' ')[0]}</span>
+                  </button>
+                ))}
               </div>
+            </div>
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                  {typeof error === 'object' ? JSON.stringify(error) : error}
-                </div>
-              )}
-
-              {success && (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-                  {success}
-                </div>
-              )}
-
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-blue-600 font-medium">Total Credits</p>
-                      <p className="text-2xl font-bold text-blue-700">₹0.00</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-red-600 font-medium">Total Debits</p>
-                      <p className="text-2xl font-bold text-red-700">₹0.00</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-green-600 font-medium">Net Balance</p>
-                      <p className="text-2xl font-bold text-green-700">₹0.00</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-purple-600 font-medium">Cash in Hand</p>
-                      <p className="text-2xl font-bold text-purple-700">₹0.00</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Date Filter */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-                <div className="w-full sm:w-auto">
-                  <Label htmlFor="closing-date-filter" className="text-sm font-medium text-gray-700 mb-2 block">Select Date</Label>
-                  <Input
-                    id="closing-date-filter"
-                    type="date"
-                    value={closingDate}
-                    onChange={(e) => setClosingDate(e.target.value)}
-                    className="w-full sm:w-48"
-                  />
-                </div>
-                <Button variant="outline" className="w-full sm:w-auto">
-                  View Report
-                </Button>
-              </div>
-
-              {/* Daily Closing History Table */}
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Closing History</h3>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="px-4 text-sm">Date</TableHead>
-                        <TableHead className="px-4 text-sm">Total Credits</TableHead>
-                        <TableHead className="px-4 text-sm">Total Debits</TableHead>
-                        <TableHead className="px-4 text-sm">Net Balance</TableHead>
-                        <TableHead className="px-4 text-sm">Cash in Hand</TableHead>
-                        <TableHead className="px-4 text-sm">Status</TableHead>
-                        <TableHead className="px-4 text-sm">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dailyClosings.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12 text-gray-500">
-                            <div className="flex flex-col items-center gap-3">
-                              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                                <DailyClosingIcon />
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-600">No closing records found</p>
-                                <p className="text-sm text-gray-400">Create your first daily closing to get started</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        dailyClosings.map((closing: any) => (
-                          <TableRow key={closing.id} className="hover:bg-gray-50 transition-colors">
-                            <TableCell className="px-4 font-medium">{closing.date}</TableCell>
-                            <TableCell className="px-4 text-blue-600">₹{closing.totalCredits}</TableCell>
-                            <TableCell className="px-4 text-red-600">₹{closing.totalDebits}</TableCell>
-                            <TableCell className="px-4 text-green-600">₹{closing.netBalance}</TableCell>
-                            <TableCell className="px-4">₹{closing.cashInHand}</TableCell>
-                            <TableCell className="px-4">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                closing.status === 'Completed' 
-                                  ? 'bg-green-100 text-green-700' 
-                                  : 'bg-yellow-100 text-yellow-700'
-                              }`}>
-                                {closing.status}
-                              </span>
-                            </TableCell>
-                            <TableCell className="px-4">
-                              <Button variant="outline" size="sm">View</Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
+            {/* Finance Content */}
+            <div className="p-4 md:p-6">
+              {renderFinanceContent()}
+            </div>
           </div>
         )}
       </Card>
-
-      {/* Daily Closing Dialog */}
-      <Dialog open={closingDialogOpen} onOpenChange={setClosingDialogOpen}>
-        <DialogContent className="max-h-[100vh] sm:max-h-[90vh] max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">Create Daily Closing</DialogTitle>
-          </DialogHeader>
-          <form className="space-y-4 sm:space-y-5">
-            <div>
-              <Label htmlFor="closing-date" className="text-sm font-medium mb-2 block">Closing Date</Label>
-              <Input
-                id="closing-date"
-                type="date"
-                value={closingDate}
-                onChange={(e) => setClosingDate(e.target.value)}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="opening-cash" className="text-sm font-medium mb-2 block">Opening Cash</Label>
-                <Input
-                  id="opening-cash"
-                  type="number"
-                  placeholder="0.00"
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <Label htmlFor="closing-cash" className="text-sm font-medium mb-2 block">Closing Cash</Label>
-                <Input
-                  id="closing-cash"
-                  type="number"
-                  placeholder="0.00"
-                  step="0.01"
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="closing-notes" className="text-sm font-medium mb-2 block">Notes</Label>
-              <Textarea
-                id="closing-notes"
-                value={closingNotes}
-                onChange={(e) => setClosingNotes(e.target.value)}
-                placeholder="Add any notes for this closing..."
-                rows={3}
-              />
-            </div>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button type="button" variant="outline" onClick={() => setClosingDialogOpen(false)} className="w-full sm:w-auto">
-                Cancel
-              </Button>
-              <Button type="submit" className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700">
-                Create Closing
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Main Group Dialog */}
       <Dialog open={mainGroupDialogOpen} onOpenChange={setMainGroupDialogOpen}>
@@ -1186,9 +1080,8 @@ export default function AccountsPage() {
                 onChange={async (e) => {
                   const mainGroupId = e.target.value;
                   setAccountDialogMainGroupId(mainGroupId);
-                  setAccountForm({ ...accountForm, subGroupId: '' }); // Reset subgroup
+                  setAccountForm({ ...accountForm, subGroupId: '' });
                   
-                  // Fetch subgroups for this main group
                   if (mainGroupId) {
                     try {
                       const response = await api.get('/accounts/subgroups', {
@@ -1277,7 +1170,7 @@ export default function AccountsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Person Account Dialog (placeholder) */}
+      {/* Person Account Dialog */}
       <Dialog open={personAccountDialogOpen} onOpenChange={setPersonAccountDialogOpen}>
         <DialogContent className="max-h-[100vh] sm:max-h-[90vh]">
           <DialogHeader>
@@ -1296,4 +1189,3 @@ export default function AccountsPage() {
     </div>
   );
 }
-

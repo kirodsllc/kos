@@ -42,38 +42,59 @@ router.get('/', async (req: AuthRequest, res) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const skip = (page - 1) * limit;
     const search = req.query.search as string;
+    const masterPartNo = req.query.masterPartNo as string;
+    const partNo = req.query.partNo as string;
     const brand = req.query.brand as string;
+    const description = req.query.description as string;
     const mainCategory = req.query.mainCategory as string;
+    const subCategory = req.query.subCategory as string;
+    const application = req.query.application as string;
     const status = req.query.status as string;
     const origin = req.query.origin as string;
     const grade = req.query.grade as string;
 
     const where: any = {};
 
-    if (search) {
-      where.OR = [
-        { partNo: { contains: search } },
-        { masterPartNo: { contains: search } },
-        { description: { contains: search } },
-        { brand: { contains: search } },
-      ];
+    // Individual filters take priority over general search
+    if (masterPartNo) {
+      where.masterPartNo = { contains: masterPartNo, mode: 'insensitive' };
     }
-
-    // Add filters
+    if (partNo) {
+      where.partNo = { contains: partNo, mode: 'insensitive' };
+    }
     if (brand) {
-      where.brand = { contains: brand };
+      where.brand = { contains: brand, mode: 'insensitive' };
+    }
+    if (description) {
+      where.description = { contains: description, mode: 'insensitive' };
     }
     if (mainCategory) {
-      where.mainCategory = { contains: mainCategory };
+      where.mainCategory = { contains: mainCategory, mode: 'insensitive' };
+    }
+    if (subCategory) {
+      where.subCategory = { contains: subCategory, mode: 'insensitive' };
+    }
+    if (application) {
+      where.application = { contains: application, mode: 'insensitive' };
     }
     if (status) {
       where.status = status;
     }
     if (origin) {
-      where.origin = { contains: origin };
+      where.origin = { contains: origin, mode: 'insensitive' };
     }
     if (grade) {
       where.grade = grade;
+    }
+
+    // General search only if no individual filters are set
+    if (search && !masterPartNo && !partNo && !description) {
+      where.OR = [
+        { partNo: { contains: search, mode: 'insensitive' } },
+        { masterPartNo: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { brand: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
     const [parts, total] = await Promise.all([

@@ -197,6 +197,8 @@ model SalesInvoice {
   invoiceNo       String              @unique
   quotationId     String?
   quotation       SalesQuotation?     @relation("QuotationToInvoice", fields: [quotationId], references: [id], onDelete: SetNull)
+  customerId      String?
+  customer        Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerName    String
   customerEmail   String?
   customerPhone   String?
@@ -222,6 +224,7 @@ model SalesInvoice {
   @@index([status])
   @@index([invoiceDate])
   @@index([customerName])
+  @@index([customerId])
 }
 
 model SalesInvoiceItem {
@@ -508,6 +511,23 @@ model Dimension {
   updatedAt   DateTime @updatedAt
 
   @@index([name])
+}
+
+model Customer {
+  id            String         @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  cnic          String?
+  status        String         @default("A")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  salesInvoices SalesInvoice[]
+
+  @@index([name])
+  @@index([status])
+  @@index([phone])
 }
 
 model Company {

@@ -79,14 +79,7 @@ async function generateSparklineData() {
     suppliers: [],
   };
 
-  // Get initial counts to ensure we have baseline data
-  const [initialParts, initialCategories, initialKits, initialSuppliers] = await Promise.all([
-    prisma.part.count({ where: { status: 'A' } }),
-    prisma.category.count({ where: { status: 'A' } }),
-    prisma.kit.count({ where: { status: 'A' } }),
-    prisma.supplier.count({ where: { status: 'A' } }),
-  ]);
-
+  // Collect historical data points without any artificial inflation
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
@@ -122,29 +115,21 @@ async function generateSparklineData() {
       }),
     ]);
 
-    // Ensure we always have at least the current count (prevents going backwards)
-    sparklineData.parts.push(Math.max(partsCount, initialParts));
-    sparklineData.categories.push(Math.max(categoriesCount, initialCategories));
-    sparklineData.kits.push(Math.max(kitsCount, initialKits));
-    sparklineData.suppliers.push(Math.max(suppliersCount, initialSuppliers));
+    // Collect raw historical counts without comparison to current totals
+    sparklineData.parts.push(partsCount);
+    sparklineData.categories.push(categoriesCount);
+    sparklineData.kits.push(kitsCount);
+    sparklineData.suppliers.push(suppliersCount);
   }
 
-  // Ensure the data is always increasing or stable (monotonic) for better visualization
-  const makeMonotonic = (arr: number[]): number[] => {
-    const result = [...arr];
-    for (let i = 1; i < result.length; i++) {
-      if (result[i] < result[i - 1]) {
-        result[i] = result[i - 1];
-      }
-    }
-    return result;
-  };
-
+  // Return accurate historical data without artificial monotonic enforcement
+  // This allows dashboards to show actual trends including decreases
+  // (e.g., when items are deleted, suppliers become inactive, etc.)
   return {
-    parts: makeMonotonic(sparklineData.parts),
-    categories: makeMonotonic(sparklineData.categories),
-    kits: makeMonotonic(sparklineData.kits),
-    suppliers: makeMonotonic(sparklineData.suppliers),
+    parts: sparklineData.parts,
+    categories: sparklineData.categories,
+    kits: sparklineData.kits,
+    suppliers: sparklineData.suppliers,
   };
 }
 

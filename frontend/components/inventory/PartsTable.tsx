@@ -75,35 +75,35 @@ export default function PartsTable({ onSelectPart, selectedPartId, refreshTrigge
   return (
     <Card className="h-full bg-white border border-gray-200 shadow-medium rounded-lg overflow-hidden flex flex-col">
       <CardHeader className="bg-white border-b border-gray-200 px-3 py-2 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-1 bg-gradient-to-b from-primary-500 to-primary-600 rounded-full"></div>
-            <div>
-              <CardTitle className="text-xl font-semibold text-gray-900">Parts List</CardTitle>
-              <p className="text-sm text-gray-500">Browse and search inventory parts</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="h-6 w-1 bg-gradient-to-b from-primary-500 to-primary-600 rounded-full flex-shrink-0"></div>
+            <div className="min-w-0">
+              <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900 truncate">Parts List</CardTitle>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">Browse and search inventory parts</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Input
               placeholder="Search parts..."
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-56 border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 h-8 text-sm"
+              className="w-full sm:w-48 md:w-56 border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 h-8 text-sm flex-shrink-0"
             />
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0 flex-1 flex flex-col overflow-hidden bg-white">
-        <div className="flex-1 overflow-y-auto scrollbar-hide scroll-smooth">
-          <Table>
+      <CardContent className="p-0 flex-1 flex flex-col overflow-hidden bg-white w-full max-w-full">
+        <div className="flex-1 overflow-y-auto scrollbar-hide scroll-smooth overflow-x-hidden w-full min-w-0">
+          <Table className="w-full">
             <TableHeader>
               <TableRow className="bg-gray-50 border-b border-gray-200">
-                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-left">Part No</TableHead>
-                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-left">Brand</TableHead>
-                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-left">UOM</TableHead>
-                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-right">Cost</TableHead>
-                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-right">Price</TableHead>
-                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-right">Stock</TableHead>
+                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-left min-w-[120px]">Part No</TableHead>
+                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-left hidden sm:table-cell min-w-[80px]">Brand</TableHead>
+                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-left min-w-[60px]">UOM</TableHead>
+                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-right min-w-[80px]">Cost</TableHead>
+                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-right min-w-[80px]">Price</TableHead>
+                <TableHead className="font-semibold text-gray-900 py-1 px-2 text-right min-w-[70px]">Stock</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -136,11 +136,11 @@ export default function PartsTable({ onSelectPart, selectedPartId, refreshTrigge
                         : 'hover:bg-gray-50'
                     }`}
                   >
-                    <TableCell className="font-semibold text-gray-900 py-1 px-2">
-                      {part.partNo}
+                    <TableCell className="font-semibold text-gray-900 py-1 px-2 truncate">
+                      <span className="truncate block" title={part.partNo}>{part.partNo}</span>
                     </TableCell>
-                    <TableCell className="text-gray-700 py-1 px-2">
-                      {part.brand || '-'}
+                    <TableCell className="text-gray-700 py-1 px-2 truncate hidden sm:table-cell">
+                      <span className="truncate block" title={part.brand || '-'}>{part.brand || '-'}</span>
                     </TableCell>
                     <TableCell className="text-gray-700 py-1 px-2">
                       {part.uom || '-'}
@@ -167,17 +167,17 @@ export default function PartsTable({ onSelectPart, selectedPartId, refreshTrigge
           </Table>
         </div>
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-200 flex-shrink-0">
-            <div className="text-sm text-gray-600 font-medium">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 sm:px-6 py-3 sm:py-4 bg-gray-50 border-t border-gray-200 flex-shrink-0 w-full">
+            <div className="text-xs sm:text-sm text-gray-600 font-medium whitespace-nowrap">
               Showing {((page - 1) * 20) + 1} to {Math.min(page * 20, total)} of {total} parts
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto justify-center sm:justify-end">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="border-gray-300"
+                className="border-gray-300 text-xs sm:text-sm px-3 sm:px-4"
               >
                 Previous
               </Button>
@@ -186,7 +186,7 @@ export default function PartsTable({ onSelectPart, selectedPartId, refreshTrigge
                 size="sm"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="border-gray-300"
+                className="border-gray-300 text-xs sm:text-sm px-3 sm:px-4"
               >
                 Next
               </Button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import PartForm, { Part } from '@/components/inventory/PartForm';
 import KitForm, { Kit } from '@/components/inventory/KitForm';
 import ModelsPanel from '@/components/inventory/ModelsPanel';
@@ -17,6 +17,30 @@ export default function PartsPage() {
   const [selectedKit, setSelectedKit] = useState<Kit | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Resizable panel widths (in percentage)
+  const [leftWidth, setLeftWidth] = useState(35); // Start with 35% for left panel
+  const [middleWidth, setMiddleWidth] = useState(16.67); // ~2/12 = 16.67% (not used, kept for reference)
+  const [rightWidth, setRightWidth] = useState(49); // Remaining space for right panel
+  
+  const [isResizing, setIsResizing] = useState<'left' | 'right' | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Check if we're on desktop size
+  useEffect(() => {
+    const checkSize = () => {
+      setIsDesktop(window.innerWidth >= 1280);
+    };
+    checkSize();
+    window.addEventListener('resize', checkSize);
+    return () => window.removeEventListener('resize', checkSize);
+  }, []);
+  
+  // Shared models state between PartForm and ModelsPanel
+  const [currentModels, setCurrentModels] = useState<any[]>([
+    { id: '', partId: '', modelNo: '', qtyUsed: 1, tab: 'P1' }
+  ]);
   
   // Kits list state
   const [kits, setKits] = useState<Kit[]>([]);
@@ -73,6 +97,19 @@ export default function PartsPage() {
     // Trigger refresh of parts table
     setRefreshTrigger(prev => prev + 1);
   };
+
+  // Reset models when selected part changes
+  useEffect(() => {
+    if (selectedPart?.models && selectedPart.models.length > 0) {
+      // Load existing models from the selected part
+      setCurrentModels([...selectedPart.models]);
+    } else {
+      // Reset to empty model (only 1)
+      setCurrentModels([
+        { id: '', partId: selectedPart?.id || '', modelNo: '', qtyUsed: 1, tab: 'P1' }
+      ]);
+    }
+  }, [selectedPart]);
 
   const handleDeletePart = (id: string) => {
     setSelectedPart(null);
@@ -160,11 +197,92 @@ export default function PartsPage() {
     }
   };
 
+  // Resize handlers
+  const handleMouseDown = useCallback((side: 'left' | 'right') => {
+    setIsResizing(side);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const mouseX = e.clientX - containerRect.left;
+    
+    // Models panel is fixed at 280px
+    const modelsFixedWidth = 280;
+    const availableWidth = containerWidth - modelsFixedWidth;
+    const percentage = (mouseX / availableWidth) * 100;
+
+    if (isResizing === 'left') {
+      // Left handle: Only adjusts Part Entry panel
+      // Models stays fixed at 280px, Parts List adjusts
+      const minLeft = 25; // Minimum 25%
+      const maxLeft = 45; // Maximum 45% (user requirement)
+      const newLeftWidth = Math.max(minLeft, Math.min(maxLeft, percentage));
+      
+      // Parts List takes remaining space (will use flex-grow)
+        setLeftWidth(newLeftWidth);
+    } else if (isResizing === 'right') {
+      // Right handle: Only adjusts Parts List panel
+      // Models stays fixed at 280px, Part Entry adjusts
+      const leftEdgePercent = (leftWidth / 100) * availableWidth;
+      const mousePosition = mouseX;
+      const newRightWidth = ((mousePosition - leftEdgePercent - modelsFixedWidth) / availableWidth) * 100;
+      
+      const minRight = 25; // Minimum 25%
+      const maxRight = 60; // Maximum 60%
+      const clampedRight = Math.max(minRight, Math.min(maxRight, newRightWidth));
+      
+      // Part Entry takes remaining space (but max 45%)
+      const newLeftWidth = Math.min(45, 100 - clampedRight);
+      
+      // Ensure minimum sizes are maintained
+      if (newLeftWidth >= 25 && clampedRight >= 25 && newLeftWidth <= 45) {
+        setLeftWidth(newLeftWidth);
+        setRightWidth(clampedRight);
+      }
+    }
+  }, [isResizing, leftWidth, rightWidth]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(null);
+  }, []);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
   return (
-    <div className="min-h-[calc(100vh-120px)] grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 p-2 sm:p-3 md:p-4 bg-gray-50">
+    <div 
+      ref={containerRef}
+      className="h-[calc(100vh-120px)] flex flex-col xl:flex-row p-2 sm:p-3 md:p-4 bg-gray-50 overflow-hidden w-full"
+      style={{ overflowX: 'hidden', maxWidth: '100%', boxSizing: 'border-box' }}
+    >
       {/* Left Panel - Part/Kit Form with Tabs */}
-      <div className="lg:col-span-3 order-1 lg:order-1 flex flex-col max-h-[calc(100vh-120px)]">
-        <div className="bg-white rounded-xl shadow-soft border border-gray-200 flex flex-col h-full">
+      <div 
+        className="order-1 xl:order-1 flex flex-col h-full overflow-hidden flex-shrink-0 w-full xl:w-auto"
+        style={{ 
+          flex: isDesktop ? `0 0 ${Math.min(45, leftWidth)}%` : '0 0 100%',
+          maxWidth: isDesktop ? '45%' : '100%',
+          minWidth: 0,
+          boxSizing: 'border-box'
+        }}
+      >
+        <div className="bg-white rounded-xl shadow-soft border border-gray-200 flex flex-col h-full overflow-hidden">
           {/* Tabs */}
           <div className="flex border-b border-gray-200">
             <button
@@ -173,7 +291,7 @@ export default function PartsPage() {
                 setActiveListTab('parts');
                 setSelectedKit(null);
               }}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
                 activeFormTab === 'part'
                   ? 'text-primary-600 border-b-2 border-primary-500 bg-primary-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -187,7 +305,7 @@ export default function PartsPage() {
                 setActiveListTab('kits');
                 setSelectedPart(null);
               }}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
                 activeFormTab === 'kit'
                   ? 'text-primary-600 border-b-2 border-primary-500 bg-primary-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -198,12 +316,13 @@ export default function PartsPage() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-0 flex-1 flex flex-col min-h-0 tab-fade">
+          <div className="p-0 flex-1 flex flex-col min-h-0 tab-fade overflow-hidden">
             {activeFormTab === 'part' ? (
               <PartForm
                 part={selectedPart}
                 onSave={handleSavePart}
                 onDelete={handleDeletePart}
+                models={currentModels}
               />
             ) : (
               <KitForm
@@ -216,23 +335,69 @@ export default function PartsPage() {
         </div>
       </div>
 
-      {/* Middle Panel - Models */}
-      <div className="lg:col-span-4 overflow-y-auto scroll-smooth order-3 lg:order-2">
+      {/* Resize Handle - Left (between Part Entry and Models) */}
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault();
+          handleMouseDown('left');
+        }}
+        className="hidden xl:flex items-center justify-center w-4 h-full cursor-col-resize hover:bg-primary-100/50 transition-colors order-3 xl:order-2 flex-shrink-0 relative z-10"
+        style={{ minWidth: '16px', maxWidth: '16px' }}
+        title="Drag to resize"
+      >
+        <div className="w-0.5 h-12 bg-gray-300 hover:bg-primary-500 rounded-full opacity-0 hover:opacity-100 transition-opacity" />
+      </div>
+
+      {/* Middle Panel - Models (Fixed Size, Not Resizable) */}
+      <div 
+        className="h-full overflow-y-auto scroll-smooth order-3 xl:order-2 flex-shrink-0 w-full xl:w-[280px]"
+        style={{ 
+          width: isDesktop ? '280px' : '100%',
+          minWidth: isDesktop ? '280px' : '0',
+          maxWidth: isDesktop ? '280px' : '100%',
+          scrollBehavior: 'smooth',
+          boxSizing: 'border-box',
+          flexShrink: 0
+        }}
+      >
         <ModelsPanel 
           partId={selectedPart?.id} 
           partName={selectedPart?.partNo || selectedPart?.description || ''}
           stockQuantity={(selectedPart as any)?.stock?.quantity ?? 0}
+          models={currentModels}
+          onModelsChange={setCurrentModels}
         />
       </div>
 
+      {/* Resize Handle - Right (between Models and Parts List) */}
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault();
+          handleMouseDown('right');
+        }}
+        className="hidden xl:flex items-center justify-center w-4 h-full cursor-col-resize hover:bg-primary-100/50 transition-colors order-2 xl:order-3 flex-shrink-0 relative z-10"
+        style={{ minWidth: '16px', maxWidth: '16px' }}
+        title="Drag to resize"
+      >
+        <div className="w-0.5 h-12 bg-gray-300 hover:bg-primary-500 rounded-full opacity-0 hover:opacity-100 transition-opacity" />
+      </div>
+
       {/* Right Panel - Parts/Kits List with Tabs */}
-      <div className="lg:col-span-5 overflow-y-auto scroll-smooth order-2 lg:order-3">
-        <Card className="h-full bg-white border border-gray-200 shadow-medium rounded-lg overflow-hidden flex flex-col">
+      <div 
+        className="h-full overflow-hidden order-2 xl:order-3 flex flex-col min-w-0 w-full xl:w-auto"
+        style={{ 
+          flex: isDesktop ? `1 1 0` : '0 0 100%',
+          minWidth: 0,
+          maxWidth: isDesktop ? 'none' : '100%',
+          boxSizing: 'border-box'
+        }}
+      >
+        <Card className="h-full bg-white border border-gray-200 shadow-medium rounded-lg overflow-hidden flex flex-col w-full min-w-0">
           {/* Tabs */}
           <div className="flex border-b border-gray-200 bg-white flex-shrink-0">
             <button
               onClick={() => setActiveListTab('parts')}
-              className={`flex-1 px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold transition-all duration-200 ${
+              className={`flex-1 px-2 sm:px-3 md:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold transition-all duration-200 ${
                 activeListTab === 'parts'
                   ? 'text-primary-600 border-b-2 border-primary-500 bg-primary-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -242,7 +407,7 @@ export default function PartsPage() {
             </button>
             <button
               onClick={() => setActiveListTab('kits')}
-              className={`flex-1 px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold transition-all duration-200 ${
+              className={`flex-1 px-2 sm:px-3 md:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold transition-all duration-200 ${
                 activeListTab === 'kits'
                   ? 'text-primary-600 border-b-2 border-primary-500 bg-primary-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -253,7 +418,7 @@ export default function PartsPage() {
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 overflow-y-auto tab-fade">
+          <div className="flex-1 overflow-y-auto tab-fade scroll-smooth" style={{ scrollBehavior: 'smooth' }}>
             {activeListTab === 'parts' ? (
               <PartsTable
                 onSelectPart={handleSelectPart}

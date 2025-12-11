@@ -257,11 +257,14 @@ router.get('/getMachinePartsModelsDropDown', async (req: AuthRequest, res: Respo
       return res.status(400).json({ error: 'machine_part_id is required' });
     }
 
+    // Find models through the relationship: MachinePart -> MachinePartOemPart -> Item -> MachineModel
     const models = await prisma.machineModel.findMany({
       where: {
         items: {
           some: {
-            id: machine_part_id as string
+            machinePartOemPart: {
+              machinePartId: machine_part_id as string
+            }
           }
         }
       },
@@ -271,7 +274,8 @@ router.get('/getMachinePartsModelsDropDown', async (req: AuthRequest, res: Respo
       },
       orderBy: {
         name: 'asc'
-      }
+      },
+      distinct: ['id'] // Ensure unique models
     });
 
     res.json({ machinepartmodel: models });
@@ -583,7 +587,7 @@ router.get('/viewKits', async (req: AuthRequest, res: Response) => {
                   }
                 }
               },
-              exisiting_item_inventory: {
+              existing_item_inventory: {
                 existing_quantity: existingQuantity
               }
             };
@@ -796,16 +800,53 @@ router.post('/breakKit', async (req: AuthRequest, res: Response) => {
       for (const kitChild of kitItem.kitItems) {
         const returnQuantity = kitChild.quantity * out_flow;
         
-        // Find existing inventory for this part
-        const existingInventory = kitChild.childItem.inventories[0];
+        // Get all existing inventories for this part in this store
+        const existingInventories = kitChild.childItem.inventories || [];
         
-        if (existingInventory) {
-          await tx.itemInventory.update({
-            where: { id: existingInventory.id },
-            data: {
-              quantity: existingInventory.quantity + returnQuantity
+        if (existingInventories.length > 0) {
+          // If there are multiple inventory locations, distribute the quantity proportionally
+          // based on current quantities to maintain balance across locations
+          if (existingInventories.length > 1) {
+            const totalExistingQuantity = existingInventories.reduce((sum, inv) => sum + inv.quantity, 0);
+            
+            // Distribute proportionally: each location gets quantity based on its current share
+            let remainingQuantity = returnQuantity;
+            for (let i = 0; i < existingInventories.length - 1; i++) {
+              const inventory = existingInventories[i];
+              const proportion = totalExistingQuantity > 0 
+                ? inventory.quantity / totalExistingQuantity 
+                : 1 / existingInventories.length;
+              const allocatedQuantity = Math.floor(returnQuantity * proportion);
+              
+              await tx.itemInventory.update({
+                where: { id: inventory.id },
+                data: {
+                  quantity: inventory.quantity + allocatedQuantity
+                }
+              });
+              
+              remainingQuantity -= allocatedQuantity;
             }
-          });
+            
+            // Add any remainder to the last inventory location
+            if (remainingQuantity > 0) {
+              const lastInventory = existingInventories[existingInventories.length - 1];
+              await tx.itemInventory.update({
+                where: { id: lastInventory.id },
+                data: {
+                  quantity: lastInventory.quantity + remainingQuantity
+                }
+              });
+            }
+          } else {
+            // Single inventory location - add all quantity to it
+            await tx.itemInventory.update({
+              where: { id: existingInventories[0].id },
+              data: {
+                quantity: existingInventories[0].quantity + returnQuantity
+              }
+            });
+          }
         } else {
           // Create new inventory record - need default rack/shelf
           const defaultRack = await tx.rack.findFirst({

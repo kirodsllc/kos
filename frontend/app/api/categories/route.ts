@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch categories - try with relations first, fallback to simple query
     let categories;
+    let lastError: any = null;
     try {
       categories = await prisma.category.findMany({
         where,
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
     } catch (relationError: any) {
       // If relations fail, try without them
       console.warn('[Categories API] Category relations query failed, trying without relations:', relationError.message);
+      lastError = relationError;
       try {
         categories = await prisma.category.findMany({
           where,
@@ -72,11 +74,25 @@ export async function GET(request: NextRequest) {
           },
         });
         console.log('[Categories API] Found categories without relations:', categories.length);
+        lastError = null; // Clear error since simple query succeeded
       } catch (simpleError: any) {
         console.error('[Categories API] Simple category query also failed:', simpleError);
-        // Return empty array if both queries fail
-        categories = [];
+        lastError = simpleError;
+        // Don't set categories to empty array - we'll return an error instead
       }
+    }
+
+    // If both queries failed, return an error response instead of empty array
+    if (lastError) {
+      console.error('[Categories API] All category queries failed:', lastError);
+      return NextResponse.json(
+        { 
+          error: 'Failed to fetch categories', 
+          message: lastError.message || 'Database query failed',
+          categories: [] // Include empty array for backward compatibility, but indicate error
+        },
+        { status: 500 }
+      );
     }
 
     const result = { categories: categories || [] };

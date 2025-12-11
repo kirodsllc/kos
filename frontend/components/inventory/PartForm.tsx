@@ -10,6 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AutocompleteInput from '@/components/ui/autocomplete-input';
 import api from '@/lib/api';
 
+export interface PartModel {
+  id?: string;
+  modelNo: string;
+  qtyUsed: number;
+  tab?: string;
+}
+
 export interface Part {
   id?: string;
   partNo: string;
@@ -36,12 +43,14 @@ export interface Part {
   remarks?: string;
   imageUrl1?: string;
   imageUrl2?: string;
+  models?: PartModel[];
 }
 
 interface PartFormProps {
   part?: Part | null;
   onSave: (part: Part) => void;
   onDelete?: (id: string) => void;
+  models?: PartModel[];
 }
 
 const UOM_OPTIONS = ['NOS', 'PCS', 'SET', 'KG', 'LTR', 'MTR', 'BOX', 'PKT'];
@@ -51,7 +60,7 @@ const ORIGIN_OPTIONS = ['USA', 'CHINA', 'JAPAN', 'GERMANY', 'INDIA', 'OTHER'];
 
 const STORAGE_KEY = 'partFormDraft_v1';
 
-export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
+export default function PartForm({ part, onSave, onDelete, models = [] }: PartFormProps) {
   const [formData, setFormData] = useState<Part>({
     partNo: '',
     masterPartNo: '',
@@ -77,6 +86,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
     remarks: '',
     imageUrl1: undefined,
     imageUrl2: undefined,
+    models: [],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -93,7 +103,10 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
     if (typeof window === 'undefined') return;
 
     if (part) {
-      setFormData(part);
+      setFormData({
+        ...part,
+        models: part.models || []
+      });
       setError(''); // Clear any previous errors when part changes
       return;
     }
@@ -127,6 +140,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
           remarks: parsed.remarks || '',
           imageUrl1: parsed.imageUrl1,
           imageUrl2: parsed.imageUrl2,
+          models: parsed.models || [],
         });
       } catch {
         // If parsing fails, fall back to default empty form
@@ -155,6 +169,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
           remarks: '',
           imageUrl1: undefined,
           imageUrl2: undefined,
+          models: [],
         });
       }
     } else {
@@ -183,6 +198,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
         remarks: '',
         imageUrl1: undefined,
         imageUrl2: undefined,
+        models: [],
       });
       setError(''); // Clear errors when part is cleared
     }
@@ -295,7 +311,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
 
   const handleAddSubCategory = async (subCategoryName: string) => {
     if (!selectedMainCategoryId) {
-      throw new Error('Please select a main category first');
+      throw new Error('Please select a category first');
     }
     try {
       await api.post('/categories', {
@@ -322,6 +338,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
   const handleChange = (field: keyof Part, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
 
   const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -400,6 +417,33 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
     setLoading(true);
 
     try {
+      // Auto-create brand if it doesn't exist and brand is provided
+      if (formData.brand && formData.brand.trim()) {
+        const brandName = formData.brand.trim();
+        const brandExists = brandOptions.some(b => b.toLowerCase() === brandName.toLowerCase());
+        
+        if (!brandExists) {
+          try {
+            await api.post('/brands', { name: brandName, status: 'A' });
+            // Refresh brand options
+            const brandsRes = await api.get('/brands');
+            setBrandOptions(brandsRes.data.brands || []);
+          } catch (brandError: any) {
+            // If brand already exists (race condition), that's fine - just continue
+            if (!brandError.response?.data?.error?.includes('already exists')) {
+              console.warn('Failed to auto-create brand:', brandError);
+            }
+            // Refresh brand options anyway to get the latest list
+            try {
+              const brandsRes = await api.get('/brands');
+              setBrandOptions(brandsRes.data.brands || []);
+            } catch (e) {
+              // Ignore refresh errors
+            }
+          }
+        }
+      }
+
       // Clean up form data - convert empty strings to undefined for optional fields
       const cleanedData: any = {
         partNo: formData.partNo.trim(),
@@ -426,6 +470,13 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
         remarks: formData.remarks?.trim() || undefined,
         imageUrl1: formData.imageUrl1 || undefined,
         imageUrl2: formData.imageUrl2 || undefined,
+        models: (models || [])
+          .filter(model => model.modelNo && model.modelNo.trim()) // Only include models with valid model numbers
+          .map(model => ({
+            modelNo: model.modelNo.trim(),
+            qtyUsed: model.qtyUsed || 1,
+            tab: model.tab || 'P1'
+          })),
       };
 
       if (part?.id) {
@@ -497,6 +548,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
           remarks: '',
           imageUrl1: undefined,
           imageUrl2: undefined,
+          models: [],
         });
         onDelete(part.id);
       } catch (err: any) {
@@ -532,6 +584,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
       smc: '',
       size: '',
       remarks: '',
+      models: [],
     };
 
     setFormData(emptyState);
@@ -578,7 +631,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6 bg-white flex-1 overflow-y-auto scroll-smooth scrollbar-visible">
+      <CardContent className="p-6 bg-white flex-1 overflow-y-auto scroll-smooth scrollbar-visible" style={{ scrollBehavior: 'smooth' }}>
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="p-4 text-sm text-red-700 bg-red-50 border-l-4 border-red-500 rounded-r-md shadow-soft flex items-start gap-3">
@@ -593,15 +646,28 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
             </div>
           )}
 
-          {/* Basic Information Section */}
+          {/* Part Information Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
               <div className="h-1 w-1 rounded-full bg-primary-500"></div>
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Basic Information
+                Part Information
               </h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* First Line: Master Part No, Part No/SSP#, Brand */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="space-y-2">
+                <Label htmlFor="masterPartNo" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">
+                  Master Part #
+                </Label>
+                <Input
+                  id="masterPartNo"
+                  value={formData.masterPartNo || ''}
+                  onChange={(e) => handleChange('masterPartNo', e.target.value)}
+                  className="border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 h-11"
+                  placeholder="Enter master part number"
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="partNo" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">
                   Part No/SSP# <span className="text-red-500 font-bold">*</span>
@@ -616,54 +682,37 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="masterPartNo" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">
-                  Master Part #
-                </Label>
-                <Input
-                  id="masterPartNo"
-                  value={formData.masterPartNo || ''}
-                  onChange={(e) => handleChange('masterPartNo', e.target.value)}
-                  className="border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 h-11"
-                  placeholder="Enter master part number"
+                <AutocompleteInput
+                  id="brand"
+                  label="Brand"
+                  value={formData.brand || ''}
+                  onChange={(value) => handleChange('brand', value)}
+                  onAddNew={handleAddBrand}
+                  options={brandOptions}
+                  placeholder="Type to search or press Enter to add new"
                 />
               </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <AutocompleteInput
-              id="brand"
-              label="Brand"
-              value={formData.brand || ''}
-              onChange={(value) => handleChange('brand', value)}
-              onAddNew={handleAddBrand}
-              options={brandOptions}
-              placeholder="Type to search or press Enter to add new"
-            />
+            {/* Second Line: Description (full width, expandable) */}
             <div className="space-y-2">
               <Label htmlFor="description" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">Description</Label>
-              <Input
+              <Textarea
                 id="description"
                 value={formData.description || ''}
                 onChange={(e) => handleChange('description', e.target.value)}
-                className="border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 h-11"
+                className="border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 min-h-[60px] resize-y"
                 placeholder="Enter part description"
+                rows={2}
               />
             </div>
           </div>
 
           {/* Classification Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-              <div className="h-1 w-1 rounded-full bg-primary-500"></div>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Classification
-              </h3>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <AutocompleteInput
                 id="mainCategory"
-                label="Main Category"
+                label="Category"
                 value={formData.mainCategory || ''}
                 onChange={(value) => handleChange('mainCategory', value)}
                 onAddNew={handleAddCategory}
@@ -677,7 +726,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
                 onChange={(value) => handleChange('subCategory', value)}
                 onAddNew={handleAddSubCategory}
                 options={subCategoryOptions}
-                placeholder={selectedMainCategoryId ? "Type to search or press Enter to add new" : "Select main category first"}
+                placeholder={selectedMainCategoryId ? "Type to search or press Enter to add new" : "Select category first"}
                 disabled={!selectedMainCategoryId}
               />
               <AutocompleteInput
@@ -694,12 +743,6 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
 
           {/* Specifications Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-              <div className="h-1 w-1 rounded-full bg-primary-500"></div>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Specifications
-              </h3>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <div className="space-y-2">
                 <Label htmlFor="hsCode" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">HS Code</Label>
@@ -730,12 +773,11 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
                 <Label htmlFor="weight" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">Weight (Kg)</Label>
                 <Input
                   id="weight"
-                  type="number"
-                  step="0.001"
+                  type="text"
                   value={formData.weight || ''}
-                  onChange={(e) => handleChange('weight', e.target.value ? parseFloat(e.target.value) : undefined)}
+                  onChange={(e) => handleChange('weight', e.target.value)}
                   className="border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 h-11"
-                  placeholder="0.000"
+                  placeholder="LxHxW"
                 />
               </div>
             </div>
@@ -743,12 +785,6 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
 
           {/* Pricing & Inventory Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-              <div className="h-1 w-1 rounded-full bg-primary-500"></div>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Pricing & Inventory
-              </h3>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label htmlFor="reOrderLevel" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">Re-Order Level</Label>
@@ -817,12 +853,6 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
 
           {/* Location & Status Section */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-              <div className="h-1 w-1 rounded-full bg-primary-500"></div>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Location & Status
-              </h3>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <div className="space-y-2">
                 <Label htmlFor="rackNo" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">Rack No</Label>
@@ -908,12 +938,6 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
 
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-              <div className="h-1 w-1 rounded-full bg-primary-500"></div>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Product Images
-              </h3>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label htmlFor="imageUrl1" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">
@@ -1060,12 +1084,6 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
 
           {/* Additional Information */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-              <div className="h-1 w-1 rounded-full bg-primary-500"></div>
-              <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">
-                Additional Information
-              </h3>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="remarks" className="text-sm font-semibold text-gray-700 block h-5 flex items-center">Remarks</Label>
               <Textarea
@@ -1078,6 +1096,7 @@ export default function PartForm({ part, onSave, onDelete }: PartFormProps) {
               />
             </div>
           </div>
+
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-6 mt-6 border-t border-gray-200 bg-gray-50 -mx-6 -mb-6 px-6 py-4">

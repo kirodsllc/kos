@@ -576,5 +576,57 @@ body {
       height: 48px;
     }
   }
+
+  /* Enhanced Button Hover States - Ensure proper visibility */
+  /* Primary buttons - ensure hover is visible */
+  button.bg-primary-500:not(:disabled):hover {
+    background-color: rgb(229, 90, 43) !important; /* primary-600 */
+    color: rgb(255, 255, 255) !important;
+    transform: translateY(-1px);
+  }
+
+  /* Outline buttons with primary theme */
+  button.border-gray-300:not(:disabled):hover {
+    background-color: rgb(255, 245, 242) !important; /* primary-50 */
+    border-color: rgb(255, 107, 53) !important; /* primary-500 */
+    color: rgb(229, 90, 43) !important; /* primary-700 */
+  }
+
+  /* Ghost buttons */
+  button.text-gray-700:not(:disabled):hover:not([class*="bg-primary"]):not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-blue"]) {
+    background-color: rgb(255, 245, 242) !important; /* primary-50 */
+    color: rgb(229, 90, 43) !important; /* primary-700 */
+  }
+
+  /* Ensure smooth transitions for all buttons */
+  button:not(:disabled) {
+    transition-property: background-color, border-color, color, transform, box-shadow;
+    transition-duration: 200ms;
+    transition-timing-function: ease-in-out;
+  }
+
+  /* Fix for buttons that might have opacity issues on hover */
+  button:not(:disabled):hover {
+    opacity: 1;
+  }
+
+  /* Time Range Selector Buttons - Specific fixes */
+  button.bg-white.text-primary-600:hover {
+    background-color: rgb(255, 245, 242) !important; /* primary-50 */
+    color: rgb(229, 90, 43) !important; /* primary-700 */
+    border-color: rgb(229, 90, 43) !important; /* primary-600 */
+  }
+
+  button.text-gray-600:hover:not(.bg-white) {
+    background-color: rgb(255, 255, 255) !important;
+    color: rgb(255, 107, 53) !important; /* primary-500 */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* Ensure selected state is visible */
+  button.bg-white.border-primary-500 {
+    border-width: 2px !important;
+    border-style: solid !important;
+  }
 }
 

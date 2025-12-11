@@ -37,6 +37,10 @@ export default function ModelsTable({ refreshTrigger = 0 }: ModelsTableProps) {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [editingRow, setEditingRow] = useState<string | null>(null);
+  const [editData, setEditData] = useState<any>({});
+  const [saving, setSaving] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   // Debounce search input
   useEffect(() => {
@@ -54,21 +58,40 @@ export default function ModelsTable({ refreshTrigger = 0 }: ModelsTableProps) {
   const loadModels = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '50',
-      });
+      // Use dedicated models API endpoint
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
+      params.set('limit', '50');
       if (debouncedSearch) {
-        params.append('search', debouncedSearch);
+        params.set('search', debouncedSearch);
       }
+
       const response = await api.get(`/models?${params.toString()}`);
-      setModels(response.data.models || []);
-      setTotalPages(response.data.pagination?.totalPages || 1);
-      setTotal(response.data.pagination?.total || 0);
+      const modelsData = response.data.models || [];
+      const pagination = response.data.pagination || { total: 0, totalPages: 1 };
+
+      // Transform backend response to match component interface
+      const transformedModels: ModelWithPart[] = modelsData.map((model: any) => ({
+        id: model.id,
+        modelNo: model.modelNo,
+        qtyUsed: model.qtyUsed,
+        tab: model.tab,
+        partId: model.partId,
+        part: {
+          id: model.part?.id || '',
+          partNo: model.part?.partNo || '',
+          description: model.part?.description || '',
+          brand: model.part?.brand || '',
+          mainCategory: model.part?.mainCategory || '',
+          stock: model.part?.stock || null
+        }
+      }));
+
+      setModels(transformedModels);
+      setTotalPages(pagination.totalPages || 1);
+      setTotal(pagination.total || 0);
     } catch (error: any) {
-      if (!error.message?.includes('Backend server is not running')) {
-        console.error('Failed to load models:', error);
-      }
+      console.error('Failed to load models:', error);
       setModels([]);
       setTotalPages(1);
       setTotal(0);
@@ -82,6 +105,97 @@ export default function ModelsTable({ refreshTrigger = 0 }: ModelsTableProps) {
     setPage(1);
   };
 
+  const startEdit = (model: ModelWithPart) => {
+    setEditingRow(model.id);
+    setEditData({
+      modelNo: model.modelNo,
+      qtyUsed: model.qtyUsed,
+      tab: model.tab || 'P1' // Keep for backend compatibility
+    });
+    setError('');
+  };
+
+  const cancelEdit = () => {
+    setEditingRow(null);
+    setEditData({});
+    setError('');
+  };
+
+  const saveModel = async (modelId: string, partId: string) => {
+    setSaving(modelId);
+    setError('');
+    
+    try {
+      // Get all existing models for this part
+      const partResponse = await api.get(`/parts/${partId}`);
+      const existingModels = partResponse.data?.part?.models || [];
+      
+      // Update the specific model
+      const updatedModels = existingModels.map((m: any) => 
+        m.id === modelId 
+          ? {
+              modelNo: editData.modelNo,
+              qtyUsed: parseInt(editData.qtyUsed) || 1,
+              tab: editData.tab
+            }
+          : {
+              modelNo: m.modelNo,
+              qtyUsed: m.qtyUsed,
+              tab: m.tab
+            }
+      );
+
+      // Save updated models
+      await api.put(`/parts/${partId}`, { models: updatedModels });
+      
+      // Reload models data
+      await loadModels();
+      
+      setEditingRow(null);
+      setEditData({});
+    } catch (err: any) {
+      console.error('Save model error:', err);
+      setError(err.response?.data?.error || 'Failed to save model');
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const deleteModel = async (modelId: string, partId: string) => {
+    if (!confirm('Are you sure you want to delete this model association?')) {
+      return;
+    }
+
+    setSaving(modelId);
+    setError('');
+    
+    try {
+      // Get all existing models for this part
+      const partResponse = await api.get(`/parts/${partId}`);
+      const existingModels = partResponse.data?.part?.models || [];
+      
+      // Remove the specific model
+      const filteredModels = existingModels
+        .filter((m: any) => m.id !== modelId)
+        .map((m: any) => ({
+          modelNo: m.modelNo,
+          qtyUsed: m.qtyUsed,
+          tab: m.tab
+        }));
+
+      // Save updated models (without the deleted one)
+      await api.put(`/parts/${partId}`, { models: filteredModels });
+      
+      // Reload models data
+      await loadModels();
+    } catch (err: any) {
+      console.error('Delete model error:', err);
+      setError(err.response?.data?.error || 'Failed to delete model');
+    } finally {
+      setSaving(null);
+    }
+  };
+
   return (
     <Card className="bg-white border border-gray-200 shadow-sm rounded-xl">
       <CardHeader className="border-b border-gray-200 bg-gray-50">
@@ -89,7 +203,7 @@ export default function ModelsTable({ refreshTrigger = 0 }: ModelsTableProps) {
           <div>
             <CardTitle className="text-xl font-semibold text-gray-900">Models List</CardTitle>
             <p className="text-sm text-gray-500 mt-1">
-              {total} model{total !== 1 ? 's' : ''} found
+              {total} model{total !== 1 ? 's' : ''} found - Click Edit to modify model details
             </p>
           </div>
           <div className="w-64">
@@ -106,6 +220,11 @@ export default function ModelsTable({ refreshTrigger = 0 }: ModelsTableProps) {
             </div>
           </div>
         </div>
+        {error && (
+          <div className="mt-3 p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md">
+            {error}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
@@ -118,8 +237,8 @@ export default function ModelsTable({ refreshTrigger = 0 }: ModelsTableProps) {
                 <TableHead className="font-semibold text-gray-900 py-4 px-6 text-left">Brand</TableHead>
                 <TableHead className="font-semibold text-gray-900 py-4 px-6 text-left">Category</TableHead>
                 <TableHead className="font-semibold text-gray-900 py-4 px-6 text-right">Qty Used</TableHead>
-                <TableHead className="font-semibold text-gray-900 py-4 px-6 text-center">Tab</TableHead>
                 <TableHead className="font-semibold text-gray-900 py-4 px-6 text-right">Stock</TableHead>
+                <TableHead className="font-semibold text-gray-900 py-4 px-6 text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -160,10 +279,23 @@ export default function ModelsTable({ refreshTrigger = 0 }: ModelsTableProps) {
                 models.map((model) => (
                   <TableRow
                     key={model.id}
-                    className="border-b border-gray-100 hover:bg-primary-50/50 transition-all duration-200 ease-in-out hover:shadow-sm"
+                    className={`border-b border-gray-100 transition-all duration-200 ease-in-out ${
+                      editingRow === model.id 
+                        ? 'bg-blue-50 shadow-md' 
+                        : 'hover:bg-primary-50/50 hover:shadow-sm'
+                    }`}
                   >
                     <TableCell className="font-semibold text-gray-900 py-4 px-6">
-                      {model.modelNo}
+                      {editingRow === model.id ? (
+                        <Input
+                          value={editData.modelNo || ''}
+                          onChange={(e) => setEditData(prev => ({ ...prev, modelNo: e.target.value }))}
+                          className="h-8 text-sm"
+                          placeholder="Model No"
+                        />
+                      ) : (
+                        model.modelNo
+                      )}
                     </TableCell>
                     <TableCell className="text-gray-700 py-4 px-6">
                       {model.part.partNo}
@@ -178,16 +310,18 @@ export default function ModelsTable({ refreshTrigger = 0 }: ModelsTableProps) {
                       {model.part.mainCategory || '-'}
                     </TableCell>
                     <TableCell className="text-gray-700 py-4 px-6 text-right font-medium">
-                      {model.qtyUsed}
-                    </TableCell>
-                    <TableCell className="text-center py-4 px-6">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        model.tab === 'P1'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-purple-100 text-purple-800'
-                      }`}>
-                        {model.tab}
-                      </span>
+                      {editingRow === model.id ? (
+                        <Input
+                          type="number"
+                          min="1"
+                          value={editData.qtyUsed || ''}
+                          onChange={(e) => setEditData(prev => ({ ...prev, qtyUsed: e.target.value }))}
+                          className="h-8 text-sm w-20"
+                          placeholder="Qty"
+                        />
+                      ) : (
+                        model.qtyUsed
+                      )}
                     </TableCell>
                     <TableCell className="text-gray-700 py-4 px-6 text-right font-medium">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -197,6 +331,56 @@ export default function ModelsTable({ refreshTrigger = 0 }: ModelsTableProps) {
                       }`}>
                         {model.part.stock?.quantity !== undefined ? model.part.stock.quantity : 0}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-center py-4 px-6">
+                      <div className="flex justify-center gap-2">
+                        {editingRow === model.id ? (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => saveModel(model.id, model.partId)}
+                              disabled={saving === model.id}
+                              className="h-8 text-xs bg-green-500 hover:bg-green-600 text-white"
+                            >
+                              {saving === model.id ? '...' : '✓'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={cancelEdit}
+                              disabled={saving === model.id}
+                              className="h-8 text-xs border-gray-300"
+                            >
+                              ✕
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => startEdit(model)}
+                              disabled={editingRow !== null || saving !== null}
+                              className="h-8 text-xs border-blue-300 text-blue-600 hover:bg-blue-50"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteModel(model.id, model.partId)}
+                              disabled={editingRow !== null || saving !== null}
+                              className="h-8 text-xs border-red-300 text-red-600 hover:bg-red-50"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

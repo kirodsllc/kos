@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 
 interface DialogContextValue {
   open: boolean;
@@ -15,11 +16,16 @@ interface DialogProps {
 
 const Dialog = ({ open: controlledOpen, onOpenChange, children }: DialogProps) => {
   const [internalOpen, setInternalOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const handleOpenChange = onOpenChange || setInternalOpen;
 
   React.useEffect(() => {
-    if (open) {
+    setMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (open && mounted) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -27,21 +33,35 @@ const Dialog = ({ open: controlledOpen, onOpenChange, children }: DialogProps) =
     return () => {
       document.body.style.overflow = '';
     };
-  }, [open]);
+  }, [open, mounted]);
 
-  if (!open) return null;
+  if (!open || !mounted || typeof window === 'undefined') return null;
 
-  return (
+  const dialogContent = (
     <DialogContext.Provider value={{ open, onOpenChange: handleOpenChange }}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ position: 'fixed' }}>
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300"
           onClick={() => handleOpenChange(false)}
+          style={{ 
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 9999
+          }}
         />
-        <div className="relative z-50 w-full h-full sm:w-auto sm:h-auto">{children}</div>
+        <div className="relative z-[10000] w-full max-w-md sm:w-auto sm:h-auto flex items-center justify-center" style={{ zIndex: 10000 }}>
+          {children}
+        </div>
       </div>
     </DialogContext.Provider>
   );
+
+  return createPortal(dialogContent, document.body);
 };
 
 const DialogContent = React.forwardRef<
@@ -54,8 +74,11 @@ const DialogContent = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={`w-full h-full sm:w-auto sm:h-auto sm:max-w-lg sm:max-h-[90vh] overflow-y-auto fixed sm:relative sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] left-0 top-0 translate-x-0 translate-y-0 z-50 grid gap-4 border-0 sm:border border-gray-200 bg-white p-4 sm:p-6 shadow-lg sm:rounded-lg transition-all duration-200 ${className}`}
+      className={`w-full max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto relative z-[10000] grid gap-4 border border-gray-200 bg-white p-4 sm:p-6 shadow-2xl rounded-lg transition-all duration-300 ${className}`}
       onClick={(e) => e.stopPropagation()}
+      style={{
+        zIndex: 10000
+      }}
       {...props}
     >
       {children}

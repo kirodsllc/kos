@@ -3,6 +3,12 @@
 import { useState } from 'react';
 import AdjustInventory from '@/components/inventory/AdjustInventory';
 import InventoryStock from '@/components/inventory/InventoryStock';
+import StockTransfer from '@/components/inventory/StockTransfer';
+import StockBalanceValuation from '@/components/inventory/StockBalanceValuation';
+import StockMultiDimensionalReport from '@/components/inventory/StockMultiDimensionalReport';
+import StockAnalysis from '@/components/inventory/StockAnalysis';
+import StockVerificationReport from '@/components/inventory/StockVerificationReport';
+import StockPriceManagement from '@/components/inventory/StockPriceManagement';
 import PurchaseOrdersPage from '../purchase-orders/page';
 import DirectPurchaseOrdersPage from '../direct-purchase-orders/page';
 import InventoryDashboard from '../inventory-dashboard/page';
@@ -12,12 +18,16 @@ type TabType =
   | 'dashboard'
   | 'adjust-inventory' 
   | 'stock' 
+  | 'stock-transfer'
   | 'purchase-order' 
   | 'direct-purchase' 
   | 'racks' 
   | 'shelves' 
   | 'return-purchase' 
-  | 'history' 
+  | 'balance-valuation'
+  | 'multi-dimensional'
+  | 'stock-analysis'
+  | 'verification'
   | 'prices';
 
 export default function InventoryPage() {
@@ -38,21 +48,75 @@ export default function InventoryPage() {
       ),
     },
     {
-      id: 'adjust-inventory' as TabType,
-      label: 'Adjust Inventory',
+      id: 'stock' as TabType,
+      label: 'Stock In/Out',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
       ),
     },
     {
-      id: 'stock' as TabType,
-      label: 'Stock',
+      id: 'stock-transfer' as TabType,
+      label: 'Stock Transfer',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+        </svg>
+      ),
+    },
+    {
+      id: 'adjust-inventory' as TabType,
+      label: 'Adjust Stock',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'balance-valuation' as TabType,
+      label: 'Balance & Valuation',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'multi-dimensional' as TabType,
+      label: 'Multi-Dimensional',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'stock-analysis' as TabType,
+      label: 'Stock Analysis',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      ),
+    },
+    {
+      id: 'verification' as TabType,
+      label: 'Verification',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      ),
+    },
+    {
+      id: 'prices' as TabType,
+      label: 'Price Control',
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
     },
@@ -70,93 +134,67 @@ export default function InventoryPage() {
       label: 'Direct Purchase',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       ),
     },
     {
       id: 'racks' as TabType,
-      label: 'Racks',
+      label: 'Racks & Shelves',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
-    },
-    {
-      id: 'shelves' as TabType,
-      label: 'Shelves',
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>
       ),
     },
     {
       id: 'return-purchase' as TabType,
-      label: 'Return Purchase ...',
+      label: 'Return Purchase',
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-      ),
-    },
-    {
-      id: 'history' as TabType,
-      label: 'History',
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
-        </svg>
-      ),
-    },
-    {
-      id: 'prices' as TabType,
-      label: 'Prices',
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
         </svg>
       ),
     },
   ];
 
   return (
-    <div className="min-h-[calc(100vh-120px)] bg-gray-50 p-2 sm:p-3 md:p-4">
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Inventory Management</h1>
-        <p className="text-gray-600">Manage your inventory operations and track stock levels</p>
+    <div className="min-h-[calc(100vh-120px)] bg-gray-50 p-2 sm:p-3 md:p-4 lg:p-6">
+      <div className="mb-3 sm:mb-4 md:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Inventory Management</h1>
+        <p className="text-sm sm:text-base text-gray-600">Manage your inventory operations and track stock levels</p>
       </div>
 
       {/* Horizontal Tabs Bar - Matching Parts Management Style */}
-      <div className="bg-white rounded-xl shadow-soft border border-gray-200 mb-4 sm:mb-6 overflow-hidden">
-        <div className="flex border-b border-gray-200 overflow-x-auto justify-center">
-          {menuItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleTabClick(item.id)}
-                className={`
-                  flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-200 whitespace-nowrap
-                  ${isActive
-                    ? 'text-primary-600 border-b-2 border-primary-500 bg-primary-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }
-                `}
-              >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+      <div className="bg-white rounded-xl shadow-soft border border-gray-200 mb-3 sm:mb-4 md:mb-6 overflow-hidden">
+        <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-hide">
+          <div className="flex min-w-full">
+            {menuItems.map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleTabClick(item.id)}
+                  className={`
+                    flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0
+                    ${isActive
+                      ? 'text-primary-600 border-b-2 border-primary-500 bg-primary-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  <span className="flex-shrink-0">{item.icon}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
+                  <span className="sm:hidden">{item.label.split(' ')[0]}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Content Area - Matching Parts Management Style */}
-      <div className="bg-white rounded-xl shadow-soft border border-gray-200 p-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-soft border border-gray-200 p-3 sm:p-4 md:p-6">
         {activeTab === 'dashboard' && (
           <div className="-m-4 sm:-m-6 -mb-4 sm:-mb-6">
             <InventoryDashboard />
@@ -175,8 +213,26 @@ export default function InventoryPage() {
         {activeTab === 'stock' && (
           <InventoryStock />
         )}
+        {activeTab === 'stock-transfer' && (
+          <StockTransfer />
+        )}
         {activeTab === 'adjust-inventory' && (
           <AdjustInventory />
+        )}
+        {activeTab === 'balance-valuation' && (
+          <StockBalanceValuation />
+        )}
+        {activeTab === 'multi-dimensional' && (
+          <StockMultiDimensionalReport />
+        )}
+        {activeTab === 'stock-analysis' && (
+          <StockAnalysis />
+        )}
+        {activeTab === 'verification' && (
+          <StockVerificationReport />
+        )}
+        {activeTab === 'prices' && (
+          <StockPriceManagement />
         )}
         {activeTab === 'racks' && (
           <div className="-m-6 -mb-0">
@@ -189,18 +245,12 @@ export default function InventoryPage() {
           </div>
         )}
         {activeTab === 'return-purchase' && (
-          <div>
-            <p className="text-gray-600">Return Purchase content will be displayed here.</p>
-          </div>
-        )}
-        {activeTab === 'history' && (
-          <div>
-            <p className="text-gray-600">History content will be displayed here.</p>
-          </div>
-        )}
-        {activeTab === 'prices' && (
-          <div>
-            <p className="text-gray-600">Prices management content will be displayed here.</p>
+          <div className="text-center py-12">
+            <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Return Purchase</h3>
+            <p className="text-gray-500">Return Purchase functionality coming soon.</p>
           </div>
         )}
       </div>

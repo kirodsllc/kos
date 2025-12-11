@@ -10,13 +10,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "create-admin": "tsx src/scripts/create-admin.ts",
-    "seed-demo": "tsx src/scripts/seed-demo-products.ts",
-    "add-20-parts": "tsx src/scripts/add-20-parts.ts",
-    "add-20-parts-list": "tsx src/scripts/add-20-parts-to-list.ts",
-    "add-50-parts": "tsx src/scripts/add-50-more-parts.ts",
-    "add-10-suppliers": "tsx src/scripts/add-10-suppliers.ts",
-    "add-10-more-suppliers": "tsx src/scripts/add-10-more-suppliers.ts"
+    "create-admin": "tsx src/scripts/create-admin.ts"
   },
   "keywords": [],
   "author": "",

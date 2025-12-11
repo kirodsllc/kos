@@ -149,7 +149,9 @@ export default function DashboardLayout({
     pathname === '/dashboard/subcategories' ||
     pathname.startsWith('/dashboard/subcategories/') ||
     pathname === '/dashboard/models' ||
-    pathname.startsWith('/dashboard/models/');
+    pathname.startsWith('/dashboard/models/') ||
+    pathname === '/dashboard/brands' ||
+    pathname.startsWith('/dashboard/brands/');
   
   const partsTabs = [
     { label: 'Parts Entry', path: '/dashboard/parts', icon: (
@@ -175,6 +177,11 @@ export default function DashboardLayout({
     { label: 'Models', path: '/dashboard/models', icon: (
       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    )},
+    { label: 'Brands', path: '/dashboard/brands', icon: (
+      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
       </svg>
     )},
   ];
@@ -354,10 +361,14 @@ export default function DashboardLayout({
         {/* Parts Management Tabs below header */}
         {isPartsPage && (
           <>
-            {/* Desktop / Tablet - centered tabs */}
+            {/* Desktop / Tablet - scrollable tabs with mouse wheel */}
             <div 
-              className="hidden md:flex bg-white border-b border-gray-200 shadow-sm parts-tabs-bar overflow-x-auto"
-              style={{ top: `${headerHeight}px` }}
+              className="hidden md:flex bg-white border-b border-gray-200 shadow-sm parts-tabs-bar overflow-x-auto scroll-smooth"
+              style={{ top: `${headerHeight}px`, scrollBehavior: 'smooth' }}
+              onWheel={(e) => {
+                e.currentTarget.scrollLeft += e.deltaY;
+                e.preventDefault();
+              }}
             >
               <div className="w-full flex items-center justify-center h-full min-w-max">
                 <nav className="flex items-center justify-center gap-3 px-6 h-full">
@@ -372,7 +383,7 @@ export default function DashboardLayout({
                       prefetch={true}
                       className={`
                         flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium rounded-full
-                        transition-colors whitespace-nowrap min-h-[36px] flex-shrink-0
+                        transition-colors whitespace-nowrap min-h-[36px] flex-shrink-0 min-w-[100px]
                         ${
                           isActive
                             ? 'bg-primary-50 text-primary-600 border border-primary-200'
@@ -389,10 +400,14 @@ export default function DashboardLayout({
               </div>
             </div>
 
-            {/* Mobile - scrollable row */}
+            {/* Mobile - scrollable row with mouse wheel */}
             <div 
-              className="md:hidden bg-white border-b border-gray-200 overflow-x-auto shadow-sm parts-tabs-bar"
-              style={{ top: `${headerHeight}px` }}
+              className="md:hidden bg-white border-b border-gray-200 overflow-x-auto shadow-sm parts-tabs-bar scroll-smooth"
+              style={{ top: `${headerHeight}px`, scrollBehavior: 'smooth' }}
+              onWheel={(e) => {
+                e.currentTarget.scrollLeft += e.deltaY;
+                e.preventDefault();
+              }}
             >
               <nav className="flex items-center gap-1 px-2 h-full">
                 {partsTabs.map((tab) => {
@@ -405,7 +420,7 @@ export default function DashboardLayout({
                       href={tab.path}
                       prefetch={true}
                       className={`
-                        flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 rounded-full min-h-[40px]
+                        flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 rounded-full min-h-[40px] min-w-[90px]
                         ${
                           isActive
                             ? 'bg-primary-50 text-primary-600 border border-primary-200'

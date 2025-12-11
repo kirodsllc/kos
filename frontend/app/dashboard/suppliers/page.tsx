@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import api from '@/lib/api';
 
@@ -236,7 +237,7 @@ export default function SuppliersPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 animate-fade-in">
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }
@@ -254,10 +255,10 @@ export default function SuppliersPage() {
         }
       `}</style>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Supplier Management</h1>
-          <p className="text-sm text-gray-500">Manage your suppliers for purchase orders</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Supplier Management</h1>
+          <p className="text-xs sm:text-sm text-gray-500">Manage your suppliers for purchase orders</p>
         </div>
         <Button
           onClick={() => {
@@ -266,7 +267,9 @@ export default function SuppliersPage() {
             setActiveTab('manage');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="bg-primary-500 hover:bg-primary-600 shadow-lg hover:shadow-xl transition-all duration-300"
+          responsive={true}
+          size="default"
+          className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-all duration-300"
         >
           + New Supplier
         </Button>
@@ -317,27 +320,30 @@ export default function SuppliersPage() {
                       <CardTitle>Suppliers</CardTitle>
                       
                       {/* Filters and Search */}
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4">
                         {/* Status Filter */}
-                        <div className="flex items-center gap-2">
-                          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Active/Inactive</label>
-                          <select
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                          <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">Active/Inactive</label>
+                          <Select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                            size="sm"
+                            responsive={true}
                           >
                             <option value="all">All</option>
                             <option value="A">Active</option>
                             <option value="I">Inactive</option>
-                          </select>
+                          </Select>
                         </div>
 
                         {/* Search Field Selection */}
-                        <div className="flex items-center gap-2">
-                          <select
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                          <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap sm:hidden">Search Field</label>
+                          <Select
                             value={searchField}
                             onChange={(e) => setSearchField(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                            size="sm"
+                            responsive={true}
                           >
                             <option value="all">All Fields</option>
                             <option value="name">Name</option>
@@ -346,7 +352,7 @@ export default function SuppliersPage() {
                             <option value="phone">Phone</option>
                             <option value="address">Address</option>
                             <option value="contactPerson">Contact Person</option>
-                          </select>
+                          </Select>
                         </div>
 
                         {/* Search Input */}
@@ -356,14 +362,18 @@ export default function SuppliersPage() {
                             placeholder="Search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className=""
+                            size="sm"
+                            responsive={true}
+                            fullWidth={true}
                           />
                         </div>
 
                         {/* Search Button */}
                         <Button
                           onClick={() => fetchSuppliers()}
-                          className="bg-primary-500 hover:bg-primary-600 text-white px-6"
+                          size="sm"
+                          responsive={true}
+                          className="w-full sm:w-auto"
                         >
                           Search
                         </Button>
@@ -562,48 +572,56 @@ export default function SuppliersPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
-                      <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
-                          <Label htmlFor="code">Supplier Code *</Label>
+                          <Label htmlFor="code" className="text-sm font-medium">Supplier Code *</Label>
                           <Input
                             id="code"
                             value={formData.code}
                             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                             placeholder="SUP-001"
                             required
+                            responsive={true}
+                            fullWidth={true}
                             className="mt-1"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="name">Supplier Name *</Label>
+                          <Label htmlFor="name" className="text-sm font-medium">Supplier Name *</Label>
                           <Input
                             id="name"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             placeholder="Enter supplier name"
                             required
+                            responsive={true}
+                            fullWidth={true}
                             className="mt-1"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="email">Email</Label>
+                          <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                           <Input
                             id="email"
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             placeholder="supplier@example.com"
+                            responsive={true}
+                            fullWidth={true}
                             className="mt-1"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="phone">Phone</Label>
+                          <Label htmlFor="phone" className="text-sm font-medium">Phone</Label>
                           <Input
                             id="phone"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             placeholder="+1 234 567 8900"
+                            responsive={true}
+                            fullWidth={true}
                             className="mt-1"
                           />
                         </div>

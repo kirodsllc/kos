@@ -324,11 +324,41 @@ export default function InventoryStockPage() {
     document.body.removeChild(link);
   };
 
+  const handleEdit = (item: InventoryItem) => {
+    // TODO: Implement edit functionality
+    console.log('Edit item:', item);
+    alert(`Edit functionality for item: ${item.item.machine_part_oem_part.machine_part.name}`);
+  };
+
+  const handleDelete = (item: InventoryItem) => {
+    if (confirm(`Are you sure you want to delete ${item.item.machine_part_oem_part.machine_part.name}?`)) {
+      // TODO: Implement delete functionality
+      console.log('Delete item:', item);
+      alert(`Delete functionality for item: ${item.item.machine_part_oem_part.machine_part.name}`);
+    }
+  };
+
+  const handleView = (item: InventoryItem) => {
+    // TODO: Implement view functionality
+    console.log('View item:', item);
+    alert(`View details for: ${item.item.machine_part_oem_part.machine_part.name}`);
+  };
+
   const startIndex = (page - 1) * limit + 1;
   const endIndex = Math.min(page * limit, total);
 
   return (
-    <div className="min-h-screen bg-white p-4 sm:p-6">
+    <div className="min-h-screen bg-white p-4 sm:p-6 w-full max-w-full">
+      <style jsx global>{`
+        /* Hide scrollbars but allow scrolling */
+        .table-container::-webkit-scrollbar {
+          display: none;
+        }
+        .table-container {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-6">
@@ -446,83 +476,127 @@ export default function InventoryStockPage() {
       {/* Table Card */}
       <Card className="shadow-lg">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="w-12">
-                    <input
-                      type="checkbox"
-                      checked={inventoryData.length > 0 && selectedRows.size === inventoryData.length}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                    />
-                  </TableHead>
-                  <TableHead className="w-20">Sr. No</TableHead>
-                  <TableHead>OEM/ Part No</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Brand</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Uom</TableHead>
-                  <TableHead>Qty</TableHead>
-                  <TableHead>Store</TableHead>
-                  <TableHead>Racks</TableHead>
-                  <TableHead>Shelf</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading && inventoryData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-gray-500">
-                      <div className="flex flex-col items-center gap-2">
-                        <svg className="animate-spin h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>Loading inventory data...</span>
-                      </div>
-                    </TableCell>
+          <div className="w-full">
+            <div className="overflow-x-auto table-container" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <Table className="min-w-full table-auto" style={{ minWidth: '1200px' }}>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="w-12 px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={inventoryData.length > 0 && selectedRows.size === inventoryData.length}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      />
+                    </TableHead>
+                    <TableHead className="w-16 px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Sr. No</TableHead>
+                    <TableHead className="min-w-[120px] px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">OEM/ Part No</TableHead>
+                    <TableHead className="min-w-[150px] px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Name</TableHead>
+                    <TableHead className="min-w-[100px] px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Brand</TableHead>
+                    <TableHead className="min-w-[120px] px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Model</TableHead>
+                    <TableHead className="min-w-[60px] px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Uom</TableHead>
+                    <TableHead className="min-w-[60px] px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Qty</TableHead>
+                    <TableHead className="min-w-[100px] px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Store</TableHead>
+                    <TableHead className="min-w-[80px] px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Racks</TableHead>
+                    <TableHead className="min-w-[80px] px-2 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">Shelf</TableHead>
+                    <TableHead className="w-[180px] px-2 sm:px-4 py-3 text-center text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap bg-gray-50 border-l-2 border-gray-300">Actions</TableHead>
                   </TableRow>
-                ) : inventoryData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-gray-500">
-                      No inventory stock found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  inventoryData.map((item, index) => (
-                    <TableRow 
-                      key={item.id} 
-                      className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                    >
-                      <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={selectedRows.has(item.id)}
-                          onChange={(e) => handleSelectRow(item.id, e.target.checked)}
-                          className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                        />
+                </TableHeader>
+                <TableBody>
+                  {loading && inventoryData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={12} className="text-center py-8 text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <svg className="animate-spin h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Loading inventory data...</span>
+                        </div>
                       </TableCell>
-                      <TableCell className="font-medium">{startIndex + index}</TableCell>
-                      <TableCell>
-                        {item.item.machine_part_oem_part.oem_part_number.number1}
-                        {item.item.machine_part_oem_part.oem_part_number.number2 
-                          ? `/${item.item.machine_part_oem_part.oem_part_number.number2}` 
-                          : ''}
-                      </TableCell>
-                      <TableCell>{item.item.machine_part_oem_part.machine_part.name}</TableCell>
-                      <TableCell>{item.item.brand.name}</TableCell>
-                      <TableCell>{item.item.machine_model.name}</TableCell>
-                      <TableCell>{item.item.machine_part_oem_part.machine_part.unit.name}</TableCell>
-                      <TableCell className="font-semibold">{item.quantity}</TableCell>
-                      <TableCell>{item.store.name}</TableCell>
-                      <TableCell>{item.racks.rack_number}</TableCell>
-                      <TableCell>{item.shelves.shelf_number}</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : inventoryData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={12} className="text-center py-8 text-gray-500">
+                        No inventory stock found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    inventoryData.map((item, index) => (
+                      <TableRow 
+                        key={item.id} 
+                        className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-purple-50 transition-colors`}
+                      >
+                        <TableCell className="px-2 sm:px-4 py-3 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.has(item.id)}
+                            onChange={(e) => handleSelectRow(item.id, e.target.checked)}
+                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                          />
+                        </TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm font-medium text-gray-900 whitespace-nowrap">{startIndex + index}</TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">
+                          {item.item.machine_part_oem_part.oem_part_number.number1}
+                          {item.item.machine_part_oem_part.oem_part_number.number2 
+                            ? `/${item.item.machine_part_oem_part.oem_part_number.number2}` 
+                            : ''}
+                        </TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">{item.item.machine_part_oem_part.machine_part.name}</TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">{item.item.brand.name}</TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">{item.item.machine_model.name}</TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">{item.item.machine_part_oem_part.machine_part.unit.name}</TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">{item.quantity}</TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">{item.store.name}</TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">{item.racks.rack_number}</TableCell>
+                        <TableCell className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">{item.shelves.shelf_number}</TableCell>
+                        <TableCell className={`px-3 py-3 text-center whitespace-nowrap border-l-2 border-gray-300 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleView(item)}
+                              className="h-8 px-3 text-xs font-medium border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-500 transition-all shadow-sm"
+                              title="View Details"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(item)}
+                              className="h-8 px-3 text-xs font-medium border-purple-400 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:border-purple-500 transition-all shadow-sm"
+                              title="Edit Item"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(item)}
+                              className="h-8 px-3 text-xs font-medium border-red-400 bg-red-50 text-red-700 hover:bg-red-100 hover:border-red-500 transition-all shadow-sm"
+                              title="Delete Item"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           {/* Pagination Footer */}

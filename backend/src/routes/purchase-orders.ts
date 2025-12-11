@@ -95,6 +95,22 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
+// Get next PO number (for frontend preview)
+// IMPORTANT: This route must be defined BEFORE /:id to avoid route conflicts
+router.get('/next-po-number/:type', async (req: AuthRequest, res) => {
+  try {
+    const type = req.params.type as 'purchase' | 'direct';
+    if (!['purchase', 'direct'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid type. Must be "purchase" or "direct"' });
+    }
+    const nextPONumber = await generatePONumber(type);
+    res.json({ nextPONumber });
+  } catch (error: any) {
+    console.error('Get next PO number error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get single purchase order
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
@@ -142,28 +158,66 @@ async function generatePONumber(type: 'purchase' | 'direct'): Promise<string> {
   if (lastPO) {
     // Extract number from last PO (e.g., "PO-2024-001" -> 1)
     const match = lastPO.poNo.match(/-(\d+)$/);
-    if (match) {
-      nextNumber = parseInt(match[1], 10) + 1;
+    if (match && match[1]) {
+      const parsedNumber = parseInt(match[1], 10);
+      if (!isNaN(parsedNumber) && parsedNumber > 0) {
+        nextNumber = parsedNumber + 1;
+      } else {
+        // If regex matched but number is invalid, try to find the highest number
+        console.warn(`Invalid PO number format found: ${lastPO.poNo}. Attempting to find highest number.`);
+        const allPOs = await prisma.purchaseOrder.findMany({
+          where: {
+            poNo: {
+              startsWith: `${prefix}-${year}-`,
+            },
+          },
+          select: {
+            poNo: true,
+          },
+        });
+        
+        let maxNumber = 0;
+        for (const po of allPOs) {
+          const poMatch = po.poNo.match(/-(\d+)$/);
+          if (poMatch && poMatch[1]) {
+            const num = parseInt(poMatch[1], 10);
+            if (!isNaN(num) && num > maxNumber) {
+              maxNumber = num;
+            }
+          }
+        }
+        nextNumber = maxNumber > 0 ? maxNumber + 1 : 1;
+      }
+    } else {
+      // Regex failed - find the highest number from all POs of this type/year
+      console.warn(`Could not extract number from PO: ${lastPO.poNo}. Searching for highest number.`);
+      const allPOs = await prisma.purchaseOrder.findMany({
+        where: {
+          poNo: {
+            startsWith: `${prefix}-${year}-`,
+          },
+        },
+        select: {
+          poNo: true,
+        },
+      });
+      
+      let maxNumber = 0;
+      for (const po of allPOs) {
+        const poMatch = po.poNo.match(/-(\d+)$/);
+        if (poMatch && poMatch[1]) {
+          const num = parseInt(poMatch[1], 10);
+          if (!isNaN(num) && num > maxNumber) {
+            maxNumber = num;
+          }
+        }
+      }
+      nextNumber = maxNumber > 0 ? maxNumber + 1 : 1;
     }
   }
 
   return `${prefix}-${year}-${String(nextNumber).padStart(3, '0')}`;
 }
-
-// Get next PO number (for frontend preview)
-router.get('/next-po-number/:type', async (req: AuthRequest, res) => {
-  try {
-    const type = req.params.type as 'purchase' | 'direct';
-    if (!['purchase', 'direct'].includes(type)) {
-      return res.status(400).json({ error: 'Invalid type. Must be "purchase" or "direct"' });
-    }
-    const nextPONumber = await generatePONumber(type);
-    res.json({ nextPONumber });
-  } catch (error: any) {
-    console.error('Get next PO number error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 // Create purchase order
 router.post('/', async (req: AuthRequest, res) => {
@@ -171,8 +225,9 @@ router.post('/', async (req: AuthRequest, res) => {
     const data = purchaseOrderSchema.parse(req.body);
 
     // Auto-generate PO number if not provided
+    // Handle null, undefined, or empty string safely
     let poNo = data.poNo;
-    if (!poNo || poNo.trim() === '') {
+    if (poNo == null || (typeof poNo === 'string' && poNo.trim() === '')) {
       poNo = await generatePONumber(data.type);
     }
 

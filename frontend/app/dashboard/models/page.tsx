@@ -1,6 +1,6 @@
 'use client';
 
-import ModelsTable from '@/components/inventory/ModelsTable';
+import ModelsSelection from '@/components/inventory/ModelsSelection';
 
 export default function ModelsPage() {
   return (
@@ -12,13 +12,13 @@ export default function ModelsPage() {
             <div className="h-10 w-1 bg-gradient-to-b from-primary-500 to-primary-600 rounded-full"></div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Models Management</h1>
-              <p className="text-sm text-gray-500 mt-1">View and manage all part models and their associations</p>
+              <p className="text-sm text-gray-500 mt-1">Select a part to view its models and quantity used</p>
             </div>
           </div>
         </div>
 
-        {/* Models Table */}
-        <ModelsTable />
+        {/* Models Selection Component */}
+        <ModelsSelection />
       </div>
     </div>
   );
